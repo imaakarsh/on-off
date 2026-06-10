@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shop Status Toggle</title>
+    <title>Status Toggle</title>
     <style>
       :root {
         color-scheme: light;
@@ -214,6 +214,87 @@
           transition: none;
         }
       }
+
+      .modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        place-items: center;
+      }
+
+      .modal.active {
+        display: grid;
+      }
+
+      .modal-content {
+        background: white;
+        padding: 32px;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+      }
+
+      .modal-content h2 {
+        margin: 0 0 20px 0;
+        font-size: 24px;
+        color: #111827;
+      }
+
+      .modal-content input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 16px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+
+      .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .modal-btn.confirm {
+        background: #0f8a3b;
+        color: white;
+      }
+
+      .modal-btn.cancel {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      .admin-status {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 8px 12px;
+        background: #e5e7eb;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #111827;
+      }
+
+      .admin-status.authenticated {
+        background: #dcfce7;
+        color: #166534;
+      }
     </style>
   </head>
   <body>
@@ -228,9 +309,31 @@
       </button>
     </main>
 
+    <div class="admin-status" id="adminStatus">Not authenticated</div>
+
+    <div class="modal" id="authModal">
+      <div class="modal-content">
+        <h2>Admin Access</h2>
+        <input type="password" id="passwordInput" placeholder="Enter admin password" />
+        <div class="modal-buttons">
+          <button class="modal-btn confirm" id="confirmBtn">Confirm</button>
+          <button class="modal-btn cancel" id="cancelBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <script>
+      const ADMIN_PASSWORD = 'admin123'; // Change this to your desired password
       const toggle = document.getElementById('statusToggle');
       const statusText = document.getElementById('statusText');
+      const authModal = document.getElementById('authModal');
+      const passwordInput = document.getElementById('passwordInput');
+      const confirmBtn = document.getElementById('confirmBtn');
+      const cancelBtn = document.getElementById('cancelBtn');
+      const adminStatus = document.getElementById('adminStatus');
+
+      let isAuthenticated = false;
+      let pendingToggle = false;
 
       function setState(isOpen) {
         toggle.dataset.state = isOpen ? 'open' : 'closed';
@@ -238,11 +341,64 @@
         statusText.textContent = isOpen ? 'Shop is open' : 'Shop is closed';
       }
 
-      toggle.addEventListener('click', () => {
-        setState(toggle.dataset.state !== 'open');
+      function updateAdminStatus() {
+        if (isAuthenticated) {
+          adminStatus.textContent = '✓ Admin authenticated';
+          adminStatus.classList.add('authenticated');
+        } else {
+          adminStatus.textContent = 'Not authenticated';
+          adminStatus.classList.remove('authenticated');
+        }
+      }
+
+      function openAuthModal() {
+        authModal.classList.add('active');
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+
+      function closeAuthModal() {
+        authModal.classList.remove('active');
+        passwordInput.value = '';
+        pendingToggle = false;
+      }
+
+      function handleToggleAttempt() {
+        if (!isAuthenticated) {
+          pendingToggle = true;
+          openAuthModal();
+        } else {
+          setState(toggle.dataset.state !== 'open');
+        }
+      }
+
+      function handlePasswordSubmit() {
+        if (passwordInput.value === ADMIN_PASSWORD) {
+          isAuthenticated = true;
+          updateAdminStatus();
+          closeAuthModal();
+          if (pendingToggle) {
+            setState(toggle.dataset.state !== 'open');
+          }
+        } else {
+          alert('Incorrect password');
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      }
+
+      toggle.addEventListener('click', handleToggleAttempt);
+      confirmBtn.addEventListener('click', handlePasswordSubmit);
+      cancelBtn.addEventListener('click', closeAuthModal);
+
+      passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          handlePasswordSubmit();
+        }
       });
 
       setState(false);
+      updateAdminStatus();
     </script>
   </body>
 </html>
